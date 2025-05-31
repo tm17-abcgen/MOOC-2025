@@ -1,0 +1,119 @@
+# Lean 4 Boolean Logic and Propositions
+
+## Bool vs Prop Distinction
+
+### Bool Type
+- Computational type with two values: `true` and `false`
+- Used for decidable computations
+- Boolean operations: `&&` (and), `||` (or), `!` (not)
+
+```lean4
+#check true && false    -- Bool
+#eval true || false     -- true
+#eval !true            -- false
+```
+
+### Prop Type
+- Type of propositions (logical statements)
+- May not be computationally decidable
+- Examples: `∀ n : Nat, n + 0 = n`, `∃ x : Int, x * x = 2`
+
+```lean4
+#check (5 < 7)          -- Prop
+#check ∀ n : Nat, n ≥ 0  -- Prop
+```
+
+## Converting Between Bool and Prop
+
+### decide: Prop → Bool (for decidable propositions)
+```lean4
+#eval decide (5 < 7)     -- true
+#eval decide (10 ≤ 3)    -- false
+
+def isPositive (n : Int) : Bool :=
+  decide (n > 0)
+```
+
+### Dependent if-then-else (dite)
+```lean4
+-- Using the proof in the branch
+def abs (x : Int) : Nat :=
+  if h : x ≥ 0 then
+    Int.toNat x
+  else
+    Int.toNat (-x)
+```
+
+## Boolean Operations
+
+### Basic Operations
+```lean4
+def and_example (a b : Bool) : Bool := a && b
+def or_example (a b : Bool) : Bool := a || b
+def not_example (a : Bool) : Bool := !a
+```
+
+### Short-circuit Evaluation
+```lean4
+-- Second operand not evaluated if first is false
+#eval false && (1 / 0 = 0)  -- false (no division by zero error)
+```
+
+## Proving Boolean Equalities
+
+### Case Analysis
+```lean4
+theorem and_comm (a b : Bool) : a && b = b && a := by
+  cases a <;> cases b <;> simp
+
+theorem or_assoc (a b c : Bool) : (a || b) || c = a || (b || c) := by
+  cases a <;> cases b <;> cases c <;> simp
+```
+
+### De Morgan's Laws
+```lean4
+theorem demorgan1 (a b : Bool) : !(a && b) = (!a || !b) := by
+  cases a <;> cases b <;> simp
+
+theorem demorgan2 (a b : Bool) : !(a || b) = (!a && !b) := by
+  cases a <;> cases b <;> simp
+```
+
+## Bool to Prop Coercion
+
+### Implicit Coercion
+```lean4
+-- Bool can be coerced to Prop where true → True, false → False
+example (b : Bool) (h : b) : b = true := by
+  simp [h]
+```
+
+### Decidable Instances
+```lean4
+instance : Decidable (5 < 7) := inferInstance
+
+-- Custom decidable instance
+def isDivisibleBy (n m : Nat) : Prop := ∃ k, n = m * k
+
+instance (n m : Nat) : Decidable (isDivisibleBy n m) := by
+  unfold isDivisibleBy
+  apply decidable_of_decidable_of_iff
+  · exact inferInstance
+  · simp [Nat.dvd_iff_mod_eq_zero]
+```
+
+## Common Patterns
+
+### Boolean Function to Proposition
+```lean4
+def isEven (n : Nat) : Bool := n % 2 = 0
+
+theorem even_double (n : Nat) : isEven (2 * n) = true := by
+  simp [isEven, Nat.mul_mod]
+```
+
+### Proving Boolean Identities
+```lean4
+theorem bool_eq_true_or_false (b : Bool) : b = true ∨ b = false := by
+  cases b <;> simp
+```

@@ -1,0 +1,183 @@
+# Lean 4 Arrays and Lists
+
+## Array vs List
+
+### Array
+- Fixed-size, efficient random access
+- O(1) indexing
+- Better for performance-critical code
+
+```lean4
+def myArray : Array Nat := #[1, 2, 3, 4, 5]
+```
+
+### List
+- Linked list structure
+- O(n) access to nth element
+- Better for recursive algorithms
+
+```lean4
+def myList : List Nat := [1, 2, 3, 4, 5]
+```
+
+## Common Array Operations
+
+### Creation and Access
+```lean4
+-- Create array
+def arr : Array Nat := #[10, 20, 30]
+
+-- Safe access (returns Option)
+#eval arr.get? 1        -- some 20
+#eval arr.get? 10       -- none
+
+-- Unsafe access (can panic)
+#eval arr[1]!           -- 20
+
+-- With proof of bounds
+example (h : 1 < arr.size) : arr[1] = 20 := by simp
+```
+
+### Map Operation
+```lean4
+def doubled := arr.map (· * 2)
+#eval doubled  -- #[20, 40, 60]
+
+-- With index
+def withIndex := arr.mapIdx (fun i x => (i, x))
+#eval withIndex  -- #[(0, 10), (1, 20), (2, 30)]
+```
+
+### Filter Operation
+```lean4
+def evens := #[1, 2, 3, 4, 5, 6].filter (· % 2 = 0)
+#eval evens  -- #[2, 4, 6]
+```
+
+### Exists and Forall
+```lean4
+-- Check if any element satisfies predicate
+#eval #[1, 3, 5].any (· % 2 = 0)  -- false
+#eval #[1, 2, 3].any (· % 2 = 0)  -- true
+
+-- Check if all elements satisfy predicate
+#eval #[2, 4, 6].all (· % 2 = 0)  -- true
+#eval #[1, 2, 3].all (· > 0)      -- true
+```
+
+### Array Modification
+```lean4
+-- Push element
+def arr1 := #[1, 2, 3].push 4
+#eval arr1  -- #[1, 2, 3, 4]
+
+-- Set element
+def arr2 := #[1, 2, 3].set! 1 10
+#eval arr2  -- #[1, 10, 3]
+
+-- Append arrays
+def arr3 := #[1, 2] ++ #[3, 4]
+#eval arr3  -- #[1, 2, 3, 4]
+```
+
+## List Operations
+
+### Basic Operations
+```lean4
+def lst : List Nat := [1, 2, 3]
+
+-- Head and tail
+#eval lst.head?  -- some 1
+#eval lst.tail   -- [2, 3]
+
+-- Cons operation
+def lst2 := 0 :: lst
+#eval lst2  -- [0, 1, 2, 3]
+```
+
+### List Comprehension Patterns
+```lean4
+-- Map
+def squares := [1, 2, 3, 4].map (fun x => x * x)
+#eval squares  -- [1, 4, 9, 16]
+
+-- Filter and map
+def evenSquares := [1, 2, 3, 4, 5, 6].filter (· % 2 = 0) |>.map (· ^ 2)
+#eval evenSquares  -- [4, 16, 36]
+```
+
+## Conversion Between Array and List
+
+```lean4
+-- List to Array
+def listToArray : Array Nat := [1, 2, 3].toArray
+#eval listToArray  -- #[1, 2, 3]
+
+-- Array to List
+def arrayToList : List Nat := #[1, 2, 3].toList
+#eval arrayToList  -- [1, 2, 3]
+```
+
+## Proving Properties About Arrays
+
+### Length Properties
+```lean4
+theorem map_preserves_length (f : α → β) (arr : Array α) :
+    arr.map f |>.size = arr.size := by
+  simp [Array.size_map]
+
+theorem filter_length_le (p : α → Bool) (arr : Array α) :
+    (arr.filter p).size ≤ arr.size := by
+  simp [Array.size_filter]
+```
+
+### Element Properties
+```lean4
+theorem exists_iff_any (p : α → Bool) (arr : Array α) :
+    arr.any p = true ↔ ∃ x ∈ arr, p x = true := by
+  simp [Array.any_iff_exists]
+
+theorem forall_iff_all (p : α → Bool) (arr : Array α) :
+    arr.all p = true ↔ ∀ x ∈ arr, p x = true := by
+  simp [Array.all_iff_forall]
+```
+
+### Common Array Patterns for Proofs
+```lean4
+-- Proving property holds for all elements
+theorem all_positive (arr : Array Nat) (h : arr.all (· > 0) = true) :
+    ∀ i : Fin arr.size, arr[i] > 0 := by
+  intro i
+  have : arr[i] ∈ arr := Array.mem_iff_get.mpr ⟨i, rfl⟩
+  exact Array.all_iff_forall.mp h _ this
+
+-- Finding an element with property
+theorem exists_even (arr : Array Nat) (h : arr.any (· % 2 = 0) = true) :
+    ∃ x ∈ arr, x % 2 = 0 := by
+  exact Array.any_iff_exists.mp h
+```
+
+## Advanced Array Operations
+
+### Fold Operations
+```lean4
+-- Sum all elements
+def sum (arr : Array Nat) : Nat :=
+  arr.foldl (· + ·) 0
+
+#eval sum #[1, 2, 3, 4]  -- 10
+
+-- Product of elements
+def product (arr : Array Nat) : Nat :=
+  arr.foldl (· * ·) 1
+
+#eval product #[2, 3, 4]  -- 24
+```
+
+### Zip Operations
+```lean4
+def arr1 := #[1, 2, 3]
+def arr2 := #["a", "b", "c"]
+def zipped := arr1.zip arr2
+#eval zipped  -- #[(1, "a"), (2, "b"), (3, "c")]
+```

@@ -1,0 +1,164 @@
+# Lean 4 Modular Arithmetic and Divisibility
+
+## Modulo Operator
+
+### Basic Usage
+```lean4
+#eval 7 % 3    -- 1
+#eval 10 % 2   -- 0
+#eval 15 % 7   -- 1
+#eval 20 % 5   -- 0
+```
+
+### Properties of Modulo
+```lean4
+-- Result is always less than divisor
+theorem mod_lt (a b : Nat) (h : b > 0) : a % b < b := Nat.mod_lt a h
+
+-- Modulo by 1 is always 0
+theorem mod_one (a : Nat) : a % 1 = 0 := Nat.mod_one a
+
+-- a % b = 0 iff b divides a
+theorem mod_eq_zero_iff_dvd {a b : Nat} (hb : b > 0) : a % b = 0 ↔ b ∣ a := by
+  exact Nat.mod_eq_zero_iff_dvd
+```
+
+## Divisibility
+
+### Divisibility Notation
+```lean4
+-- a ∣ b means "a divides b"
+#check (3 ∣ 9)   -- Prop
+#eval decide (3 ∣ 9)   -- true
+#eval decide (4 ∣ 10)  -- false
+```
+
+### Basic Divisibility Properties
+```lean4
+-- Reflexivity: a divides a
+theorem dvd_refl (a : Nat) : a ∣ a := dvd_refl
+
+-- Transitivity: if a|b and b|c then a|c
+theorem dvd_trans {a b c : Nat} (hab : a ∣ b) (hbc : b ∣ c) : a ∣ c :=
+  dvd_trans hab hbc
+
+-- 1 divides everything
+theorem one_dvd (a : Nat) : 1 ∣ a := one_dvd a
+
+-- Everything divides 0
+theorem dvd_zero (a : Nat) : a ∣ 0 := dvd_zero a
+```
+
+### Divisibility and Arithmetic
+```lean4
+-- If a|b and a|c then a|(b+c)
+theorem dvd_add {a b c : Nat} (hab : a ∣ b) (hac : a ∣ c) : a ∣ (b + c) :=
+  dvd_add hab hac
+
+-- If a|b then a|(b*c)
+theorem dvd_mul_right {a b c : Nat} (hab : a ∣ b) : a ∣ (b * c) :=
+  dvd_mul_of_dvd_left hab c
+
+-- If a|b and b≠0 then a≤b
+theorem dvd_le {a b : Nat} (hab : a ∣ b) (hb : b ≠ 0) : a ≤ b := by
+  cases' hab with k hk
+  rw [hk]
+  cases k
+  · simp at hb
+  · simp [Nat.succ_mul, Nat.le_add_right]
+```
+
+## Common Divisibility Proofs
+
+### Even and Odd Numbers
+```lean4
+def isEven (n : Nat) : Prop := 2 ∣ n
+def isOdd (n : Nat) : Prop := ¬(2 ∣ n)
+
+-- Alternative definition using modulo
+theorem even_iff_mod_two_eq_zero (n : Nat) : isEven n ↔ n % 2 = 0 := by
+  simp [isEven, Nat.dvd_iff_mod_eq_zero]
+
+theorem odd_iff_mod_two_eq_one (n : Nat) : isOdd n ↔ n % 2 = 1 := by
+  simp [isOdd, isEven, Nat.dvd_iff_mod_eq_zero]
+  omega
+```
+
+### Sum of Even Numbers
+```lean4
+theorem even_add_even {m n : Nat} (hm : isEven m) (hn : isEven n) : isEven (m + n) := by
+  cases' hm with k hk
+  cases' hn with j hj
+  use k + j
+  rw [hk, hj]
+  ring
+```
+
+### Product with Even Number
+```lean4
+theorem even_mul {m n : Nat} (hm : isEven m) : isEven (m * n) := by
+  cases' hm with k hk
+  use k * n
+  rw [hk]
+  ring
+```
+
+## Divisibility by Specific Numbers
+
+### Divisibility by 3
+```lean4
+-- Sum of digits divisibility rule (simplified version)
+def sumDigits : Nat → Nat
+  | 0 => 0
+  | n + 1 => (n + 1) % 10 + sumDigits ((n + 1) / 10)
+
+-- Note: Full proof requires more machinery
+theorem div_by_3_iff_sum_digits (n : Nat) : 3 ∣ n ↔ 3 ∣ sumDigits n := sorry
+```
+
+### Divisibility by Powers of 2
+```lean4
+theorem div_by_4_iff_last_two_digits (n : Nat) : 4 ∣ n ↔ 4 ∣ (n % 100) := by
+  have : n = (n / 100) * 100 + n % 100 := Nat.div_add_mod n 100
+  rw [this]
+  simp [dvd_add_iff_left]
+  apply dvd_mul_right
+  norm_num
+```
+
+## Using omega for Modular Arithmetic
+
+```lean4
+example (n : Nat) : n % 5 < 5 := by omega
+
+example (a b : Nat) (h : a % 6 = 2 ∧ b % 6 = 4) : (a + b) % 6 = 0 := by
+  omega
+
+example (n : Nat) (h : n % 3 = 2) : (n + 1) % 3 = 0 := by
+  omega
+```
+
+## Advanced Divisibility Patterns
+
+### GCD and LCM
+```lean4
+#eval Nat.gcd 12 18  -- 6
+#eval Nat.lcm 12 18  -- 36
+
+theorem gcd_dvd_left (a b : Nat) : Nat.gcd a b ∣ a := Nat.gcd_dvd_left a b
+theorem gcd_dvd_right (a b : Nat) : Nat.gcd a b ∣ b := Nat.gcd_dvd_right a b
+
+theorem dvd_gcd {a b c : Nat} (hca : c ∣ a) (hcb : c ∣ b) : c ∣ Nat.gcd a b :=
+  Nat.dvd_gcd hca hcb
+```
+
+### Coprimality
+```lean4
+def coprime (a b : Nat) : Prop := Nat.gcd a b = 1
+
+theorem coprime_iff_gcd_eq_one {a b : Nat} : coprime a b ↔ Nat.gcd a b = 1 := by
+  rfl
+
+theorem coprime_comm {a b : Nat} : coprime a b ↔ coprime b a := by
+  simp [coprime, Nat.gcd_comm]
+```

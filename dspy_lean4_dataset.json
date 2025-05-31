@@ -1,0 +1,79 @@
+[
+  {
+    "task_id": "task_id_0",
+    "description": "-----Description----- \nThis task requires writing a Lean 4 function that takes a natural number as input and returns the same natural number as output.\n\n-----Input-----\nThe input consists of one natur...",
+    "function_name": "ident",
+    "implementation_hint": "identity function returning input",
+    "proof_hint": "reflexivity (rfl)"
+  },
+  {
+    "task_id": "task_id_127",
+    "description": "-----Description----- \nThis task requires writing a Lean 4 method that multiplies two integers. The method should return the product of the two input numbers.\n\n-----Input-----\nThe input consists of:\na...",
+    "function_name": "multiply",
+    "implementation_hint": "identity function returning input",
+    "proof_hint": "reflexivity (rfl)"
+  },
+  {
+    "task_id": "task_id_227",
+    "description": "-----Description----- \nThis task requires writing a Lean 4 method that finds the minimum among three given integers. The method should return the smallest value, ensuring that the result is less than ...",
+    "function_name": "minOfThree",
+    "implementation_hint": "identity function returning input",
+    "proof_hint": "reflexivity (rfl)"
+  },
+  {
+    "task_id": "task_id_404",
+    "description": "-----Description----- \nThis task requires writing a Lean 4 method that determines the minimum of two integers. The method should return the smaller of the two numbers. When both numbers are equal, eit...",
+    "function_name": "myMin",
+    "implementation_hint": "identity function returning input",
+    "proof_hint": "reflexivity (rfl)"
+  },
+  {
+    "task_id": "task_id_431",
+    "description": "-----Description----- \nThis task requires writing a Lean 4 method that checks whether two arrays of integers have any elements in common. In other words, the method should return true if there is at l...",
+    "function_name": "hasCommonElement",
+    "implementation_hint": "identity function returning input",
+    "proof_hint": "reflexivity (rfl)"
+  },
+  {
+    "task_id": "task_id_433",
+    "description": "-----Description----- \nThis task requires writing a Lean 4 method that determines if a given integer is strictly greater than every element in a provided array. The method should return true only if t...",
+    "function_name": "isGreater",
+    "implementation_hint": "identity function returning input",
+    "proof_hint": "reflexivity (rfl)"
+  },
+  {
+    "task_id": "task_id_435",
+    "description": "-----Description-----  \nThis task requires writing a Lean 4 method that extracts the last digit of a given non-negative integer. The method should return the last digit, which is obtained by computing...",
+    "function_name": "lastDigit",
+    "implementation_hint": "identity function returning input",
+    "proof_hint": "reflexivity (rfl)"
+  },
+  {
+    "task_id": "task_id_441",
+    "description": "-----Description----- \nThis task requires writing a Lean 4 method that calculates the surface area of a cube based on the length of one of its edges. The method should compute the surface area using t...",
+    "function_name": "cubeSurfaceArea",
+    "implementation_hint": "identity function returning input",
+    "proof_hint": "reflexivity (rfl)"
+  },
+  {
+    "task_id": "task_id_447",
+    "description": "-----Description----- \nThis task requires writing a Lean 4 method that transforms an array of integers by replacing every element with its cube. In other words, for each element in the input array, th...",
+    "function_name": "cubeElements",
+    "implementation_hint": "identity function returning input",
+    "proof_hint": "reflexivity (rfl)"
+  },
+  {
+    "task_id": "task_id_58",
+    "description": "-----Description----- \nThis task requires writing a Lean 4 method that determines whether two given integers have opposite signs. In other words, the method should return true if one integer is positi...",
+    "function_name": "hasOppositeSign",
+    "implementation_hint": "identity function returning input",
+    "proof_hint": "reflexivity (rfl)"
+  },
+  {
+    "task_id": "task_id_77",
+    "description": "-----Description----- \nThis task requires writing a Lean 4 method that determines whether a given integer is divisible by 11. The method should return true if the number is divisible by 11 and false o...",
+    "function_name": "isDivisibleBy11",
+    "implementation_hint": "identity function returning input",
+    "proof_hint": "reflexivity (rfl)"
+  }
+]

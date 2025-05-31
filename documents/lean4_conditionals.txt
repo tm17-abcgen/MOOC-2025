@@ -1,0 +1,155 @@
+# Lean 4 Conditional Expressions and Pattern Matching
+
+## if-then-else Expressions
+
+### Basic Syntax
+```lean4
+def max (a b : Nat) : Nat :=
+  if a > b then a else b
+
+#eval max 5 3  -- 5
+```
+
+### With Bool Conditions
+```lean4
+def absolute (x : Int) : Nat :=
+  if x ≥ 0 then Int.toNat x else Int.toNat (-x)
+```
+
+### Dependent if (dite)
+```lean4
+-- Access to proof in branches
+def safeDivide (a b : Nat) : Option Nat :=
+  if h : b ≠ 0 then
+    some (a / b)
+  else
+    none
+```
+
+## Pattern Matching
+
+### On Natural Numbers
+```lean4
+def factorial : Nat → Nat
+  | 0 => 1
+  | n + 1 => (n + 1) * factorial n
+
+def isZero : Nat → Bool
+  | 0 => true
+  | _ => false
+```
+
+### On Custom Types
+```lean4
+inductive Color where
+  | red | green | blue
+
+def colorToString : Color → String
+  | Color.red => "red"
+  | Color.green => "green"
+  | Color.blue => "blue"
+```
+
+### Nested Patterns
+```lean4
+def addPairs : (Nat × Nat) → (Nat × Nat) → (Nat × Nat)
+  | (a, b), (c, d) => (a + c, b + d)
+```
+
+## split_ifs Tactic
+
+### Basic Usage
+```lean4
+theorem if_example (p : Prop) [Decidable p] (a b : Nat) :
+    (if p then a else b) ≤ max a b := by
+  split_ifs with h
+  · -- Case: p is true
+    simp [max]
+    by_cases a > b <;> simp
+  · -- Case: p is false
+    simp [max]
+    by_cases a > b <;> simp
+```
+
+### Multiple Conditions
+```lean4
+theorem nested_if (a b c : Nat) :
+    (if a > b then if b > c then a else b else c) ≥ min b c := by
+  split_ifs <;> simp [min] <;> omega
+```
+
+### With Named Hypotheses
+```lean4
+example (p q : Prop) [Decidable p] [Decidable q] (a b c : Nat) :
+    (if p then if q then a else b else c) = 
+    (if p ∧ q then a else if p ∧ ¬q then b else c) := by
+  split_ifs with hp hq hp' hpq hp2 hnq
+  · rfl
+  · rfl
+  · rfl
+```
+
+## Advanced Pattern Matching
+
+### With Guards
+```lean4
+def classifyNat : Nat → String
+  | 0 => "zero"
+  | 1 => "one"
+  | n => if n < 10 then "small" else "large"
+```
+
+### Recursive Patterns
+```lean4
+def sum : List Nat → Nat
+  | [] => 0
+  | x :: xs => x + sum xs
+
+def length : List α → Nat
+  | [] => 0
+  | _ :: xs => 1 + length xs
+```
+
+## Proving Properties of Conditionals
+
+### Basic Properties
+```lean4
+theorem if_true {α : Type} (a b : α) : (if True then a else b) = a := by simp
+
+theorem if_false {α : Type} (a b : α) : (if False then a else b) = b := by simp
+```
+
+### Conditional Commutativity
+```lean4
+theorem if_congr {α : Type} (p q : Prop) [Decidable p] [Decidable q]
+    (a b : α) (h : p ↔ q) : (if p then a else b) = (if q then a else b) := by
+  simp [h]
+```
+
+### Min/Max Properties
+```lean4
+theorem min_comm (a b : Nat) : min a b = min b a := by
+  simp [min]
+  split_ifs <;> omega
+
+theorem max_assoc (a b c : Nat) : max (max a b) c = max a (max b c) := by
+  simp [max]
+  split_ifs <;> omega
+```
+
+## Common Patterns
+
+### Conditional Assignment
+```lean4
+def sign (x : Int) : Int :=
+  if x > 0 then 1
+  else if x < 0 then -1
+  else 0
+```
+
+### Early Return Pattern
+```lean4
+def findFirst (p : α → Bool) : List α → Option α
+  | [] => none
+  | x :: xs => if p x then some x else findFirst p xs
+```

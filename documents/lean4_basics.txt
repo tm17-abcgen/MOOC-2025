@@ -1,0 +1,102 @@
+# Lean 4 Basics: Natural Numbers, Integers, and Type Conversions
+
+## Natural Numbers (Nat)
+
+The Nat type represents non-negative integers, defined inductively:
+
+```lean4
+inductive Nat where
+  | zero : Nat
+  | succ (n : Nat) : Nat
+```
+
+### Basic Operations
+- Addition: `+` (Nat.add)
+- Subtraction: `-` (Nat.sub) - truncating subtraction (5 - 7 = 0)
+- Multiplication: `*` (Nat.mul)
+- Division: `/` (Nat.div)
+- Modulo: `%` (Nat.mod)
+
+### Examples
+```lean4
+#eval (3 : Nat) + 5     -- 8
+#eval (5 : Nat) - 7     -- 0 (truncating)
+#eval (4 : Nat) * 3     -- 12
+#eval (10 : Nat) / 3    -- 3
+#eval (10 : Nat) % 3    -- 1
+```
+
+## Integers (Int)
+
+The Int type handles both positive and negative integers:
+
+```lean4
+inductive Int where
+  | ofNat : Nat → Int      -- Non-negative integers
+  | negSucc : Nat → Int    -- Negative integers (-1, -2, ...)
+```
+
+### Basic Operations
+```lean4
+#eval (5 : Int) - 7      -- -2
+#eval (-3 : Int) * 4     -- -12
+#eval (-10 : Int) / 3    -- -3
+```
+
+## Type Conversions
+
+### Nat to Int
+```lean4
+def n : Nat := 5
+def i : Int := Int.ofNat n
+#eval i  -- 5
+```
+
+### Int to Nat
+```lean4
+#eval Int.toNat (5 : Int)   -- 5
+#eval Int.toNat (-3 : Int)  -- 0 (negative becomes 0)
+```
+
+## Common Theorems and Tactics
+
+### Commutativity and Associativity
+```lean4
+theorem add_comm (a b : Nat) : a + b = b + a := Nat.add_comm a b
+theorem add_assoc (a b c : Nat) : (a + b) + c = a + (b + c) := Nat.add_assoc a b c
+```
+
+### Induction on Natural Numbers
+```lean4
+theorem zero_add (n : Nat) : 0 + n = n := by
+  induction n with
+  | zero => rfl
+  | succ n ih => simp [Nat.add_succ, ih]
+```
+
+### Properties of Operations
+```lean4
+theorem add_zero (n : Nat) : n + 0 = n := Nat.add_zero n
+theorem mul_one (n : Nat) : n * 1 = n := Nat.mul_one n
+theorem zero_mul (n : Nat) : 0 * n = 0 := Nat.zero_mul n
+```
+
+## Proof Patterns
+
+### Basic Equality Proofs
+```lean4
+example : 2 + 3 = 5 := rfl
+```
+
+### Using simp
+```lean4
+example (n : Nat) : n + 0 = n := by simp
+```
+
+### Induction Pattern
+```lean4
+theorem add_comm' (m n : Nat) : m + n = n + m := by
+  induction m with
+  | zero => simp
+  | succ m ih => simp [Nat.add_succ, ih]
+```
