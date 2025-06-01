@@ -1,0 +1,305 @@
+# Lean 4 Boolean Logic Complete Guide
+
+## Bool vs Prop Distinction
+
+### Bool Type - Computational Logic
+```lean4
+-- Bool has exactly two values
+#check true   -- Bool
+#check false  -- Bool
+
+-- Boolean operations are computable
+#eval true && false    -- false
+#eval true || false    -- true  
+#eval !true           -- false
+
+-- Boolean functions
+def isEven (n : Nat) : Bool := n % 2 = 0
+def isPositive (n : Int) : Bool := decide (n > 0)
+```
+
+### Prop Type - Logical Propositions
+```lean4
+-- Propositions may not be decidable
+#check (5 < 7)          -- Prop
+#check ∀ n : Nat, n ≥ 0  -- Prop
+#check ∃ x : Real, x * x = 2  -- Prop
+
+-- Some propositions are decidable
+instance : Decidable (5 < 7) := inferInstance
+```
+
+## decide Tactic - Prop to Bool Bridge
+
+### Basic decide Usage (2024 Enhanced)
+```lean4
+-- Arithmetic decidability
+example : 10 < 5 ∨ 1 > 0 := by decide
+example : ¬ (True ∧ False) := by decide  
+example : 10 * 20 = 200 := by decide
+
+-- Enhanced error messages in Lean 4.7+
+theorem impossible : 2 + 2 < 4 := by decide
+-- Error: tactic 'decide' proved that the proposition 2 + 2 < 4 is false
+```
+
+### decide with Custom Predicates
+```lean4
+-- Custom decidable instances
+def isDivisibleBy (n m : Nat) : Prop := n % m = 0
+
+instance (n m : Nat) : Decidable (isDivisibleBy n m) := by
+  unfold isDivisibleBy
+  exact Nat.decidableEq _ _
+
+example : isDivisibleBy 12 3 := by decide
+example : ¬ isDivisibleBy 13 3 := by decide
+```
+
+## Bool to Prop Conversion Patterns
+
+### Using decide Function
+```lean4
+-- decide converts decidable Prop to Bool
+#eval decide (5 < 7)     -- true
+#eval decide (10 ≤ 3)    -- false
+
+-- Equivalence theorems
+theorem decide_eq_true_iff (p : Prop) [Decidable p] : 
+  decide p = true ↔ p := by
+  simp [decide_eq_true_iff]
+
+theorem decide_eq_false_iff (p : Prop) [Decidable p] : 
+  decide p = false ↔ ¬p := by
+  simp [decide_eq_false_iff]
+```
+
+### Bool to Prop Coercion
+```lean4
+-- Bool can be coerced to Prop via coe
+instance : Coe Bool Prop where
+  coe b := b = true
+
+-- Usage examples
+example (b : Bool) (h : b) : b = true := by simp [h]
+
+def BoolToProp (b : Bool) : Prop := b
+
+example : BoolToProp true := by simp [BoolToProp]
+example : ¬ BoolToProp false := by simp [BoolToProp]
+```
+
+## Boolean Operations and Proofs
+
+### Boolean Arithmetic
+```lean4
+-- Boolean operations
+def and_example (a b : Bool) : Bool := a && b
+def or_example (a b : Bool) : Bool := a || b  
+def not_example (a : Bool) : Bool := !a
+def xor_example (a b : Bool) : Bool := (a && !b) || (!a && b)
+
+-- Short-circuit evaluation
+#eval false && (1 / 0 = 0)  -- false (no error)
+#eval true || (1 / 0 = 0)   -- true (no error)
+```
+
+### Boolean Identity Proofs
+```lean4
+-- Commutativity
+theorem bool_and_comm (a b : Bool) : a && b = b && a := by
+  cases a <;> cases b <;> simp
+
+theorem bool_or_comm (a b : Bool) : a || b = b || a := by
+  cases a <;> cases b <;> simp
+
+-- Associativity  
+theorem bool_and_assoc (a b c : Bool) : (a && b) && c = a && (b && c) := by
+  cases a <;> cases b <;> cases c <;> simp
+
+theorem bool_or_assoc (a b c : Bool) : (a || b) || c = a || (b || c) := by
+  cases a <;> cases b <;> cases c <;> simp
+
+-- Distributivity
+theorem bool_and_or_distrib (a b c : Bool) : a && (b || c) = (a && b) || (a && c) := by
+  cases a <;> cases b <;> cases c <;> simp
+
+theorem bool_or_and_distrib (a b c : Bool) : a || (b && c) = (a || b) && (a || c) := by
+  cases a <;> cases b <;> cases c <;> simp
+```
+
+### De Morgan's Laws
+```lean4
+theorem demorgan_and (a b : Bool) : !(a && b) = (!a || !b) := by
+  cases a <;> cases b <;> simp
+
+theorem demorgan_or (a b : Bool) : !(a || b) = (!a && !b) := by  
+  cases a <;> cases b <;> simp
+
+-- Proving De Morgan's for propositions
+theorem prop_demorgan_and (p q : Prop) : ¬(p ∧ q) ↔ (¬p ∨ ¬q) := by
+  constructor
+  · intro h
+    by_cases hp : p
+    · by_cases hq : q
+      · exact False.elim (h ⟨hp, hq⟩)
+      · exact Or.inr hq
+    · exact Or.inl hp
+  · intro h
+    cases h with
+    | inl hnp => intro ⟨hp, _⟩; exact hnp hp
+    | inr hnq => intro ⟨_, hq⟩; exact hnq hq
+```
+
+## Advanced Boolean Patterns
+
+### Boolean Case Analysis Patterns
+```lean4
+-- Standard case analysis
+theorem bool_trichotomy (b : Bool) : b = true ∨ b = false := by
+  cases b <;> simp
+
+-- Case analysis with computation
+def bool_to_nat (b : Bool) : Nat := if b then 1 else 0
+
+theorem bool_to_nat_cases (b : Bool) : bool_to_nat b = 0 ∨ bool_to_nat b = 1 := by
+  unfold bool_to_nat
+  cases b <;> simp
+```
+
+### Dependent Boolean Operations
+```lean4
+-- If-then-else with proofs
+def abs_int (x : Int) : Nat :=
+  if h : x ≥ 0 then
+    Int.toNat x  
+  else
+    Int.toNat (-x)
+
+-- Boolean predicate with witness
+def existsTrue (p : Nat → Bool) (n : Nat) : Bool × Option Nat :=
+  if p n then (true, some n) else (false, none)
+
+theorem existsTrue_correct (p : Nat → Bool) (n : Nat) :
+  let (result, witness) := existsTrue p n
+  result = true ↔ ∃ m, witness = some m ∧ p m = true := by
+  simp [existsTrue]
+  split
+  · simp
+    intro h
+    exact ⟨n, rfl, h⟩
+  · simp
+```
+
+## Common Boolean Proof Patterns
+
+### If-Then-Else Proofs
+```lean4
+-- Basic if-then-else
+example (b : Bool) (x y : Nat) : 
+  (if b then x else y) = if b then x else y := by rfl
+
+-- If-then-else with conditions
+theorem ite_eq_left (b : Bool) (x y : α) (h : b = true) :
+  (if b then x else y) = x := by simp [h]
+
+theorem ite_eq_right (b : Bool) (x y : α) (h : b = false) :
+  (if b then x else y) = y := by simp [h]
+
+-- Nested if-then-else
+example (a b : Bool) (x y z w : Nat) :
+  (if a then if b then x else y else if b then z else w) = 
+  (if a && b then x else if a && !b then y else if !a && b then z else w) := by
+  cases a <;> cases b <;> simp
+```
+
+### Boolean Equality Patterns
+```lean4
+-- Boolean equality via cases
+theorem bool_eq_iff (a b : Bool) : a = b ↔ (a ↔ b) := by
+  cases a <;> cases b <;> simp
+
+-- Using decidable equality
+example (a b : Bool) : a = b ∨ a ≠ b := by
+  by_cases h : a = b
+  · exact Or.inl h
+  · exact Or.inr h
+
+-- Boolean function equality
+theorem bool_fun_ext (f g : Bool → Bool) : 
+  f = g ↔ f true = g true ∧ f false = g false := by
+  constructor
+  · intro h; simp [h]
+  · intro ⟨h1, h2⟩
+    ext b
+    cases b <;> simp [h1, h2]
+```
+
+## Integration with Decidable Types
+
+### Custom Decidable Instances
+```lean4
+-- Custom type with decidable equality
+inductive Color where
+  | red | green | blue
+
+instance : DecidableEq Color := by
+  intro a b
+  cases a <;> cases b <;> exact decidable_of_decidable_of_iff ⟨by simp⟩ (by simp)
+
+-- Using with Boolean functions
+def isRed (c : Color) : Bool := decide (c = Color.red)
+
+example : isRed Color.red = true := by simp [isRed]
+example : isRed Color.green = false := by simp [isRed]
+```
+
+### Boolean Reflection Patterns
+```lean4
+-- Reflect Boolean computation into Prop
+def reflects (b : Bool) (p : Prop) : Prop := (b ↔ p)
+
+theorem reflects_true {p : Prop} : reflects true p ↔ p := by simp [reflects]
+theorem reflects_false {p : Prop} : reflects false p ↔ ¬p := by simp [reflects]
+
+-- Use reflection for proof automation
+example (n : Nat) : n % 2 = 0 ∨ n % 2 = 1 := by
+  have h : reflects (decide (n % 2 = 0)) (n % 2 = 0) := by simp [reflects, decide_eq_true_iff]
+  by_cases decide (n % 2 = 0)
+  · exact Or.inl (by simpa [reflects] using h)
+  · exact Or.inr (Nat.mod_two_eq_one_iff_odd.mpr (Nat.odd_iff_not_even.mpr (by simpa [reflects] using h)))
+```
+
+## Error Patterns and Solutions
+
+### Common Boolean Logic Errors
+```lean4
+-- ❌ Wrong: Confusing Bool and Prop
+-- example (n : Nat) : n > 0 && n < 10 := by sorry  -- Type error
+
+-- ✅ Correct: Use proper Bool or Prop
+example (n : Nat) : decide (n > 0) && decide (n < 10) = true ↔ n > 0 ∧ n < 10 := by
+  simp [decide_eq_true_iff]
+
+-- ❌ Wrong: Missing decidability
+-- #eval (∃ x : Real, x * x = 2)  -- Not decidable
+
+-- ✅ Correct: Use decidable propositions
+#eval decide (∃ x : Nat, x < 10 ∧ x * x = 25)  -- false
+```
+
+### Boolean Simplification Strategies
+```lean4
+-- Complex boolean expression simplification
+theorem complex_bool_simp (a b c : Bool) :
+  (a && b) || (a && c) || (b && c) = (a && (b || c)) || (b && c) := by
+  cases a <;> cases b <;> cases c <;> simp
+
+-- Use simp with boolean lemmas
+theorem bool_simp_example (x y : Bool) :
+  (x || y) && (!x || !y) = (x && !y) || (!x && y) := by
+  simp only [Bool.and_or_distrib_left, Bool.or_and_distrib_right]
+  cases x <;> cases y <;> simp
+```
+
+<EOC>

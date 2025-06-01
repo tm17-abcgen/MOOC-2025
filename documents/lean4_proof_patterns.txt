@@ -1,0 +1,251 @@
+# Lean 4 Proof Patterns Library
+
+## Pattern 1: Boolean Equivalence Proofs (↔)
+
+### Template: Bool ↔ Prop
+```lean4
+-- Goal: (a && b) ↔ (a = true ∧ b = true)
+theorem bool_and_iff (a b : Bool) : (a && b) = true ↔ a = true ∧ b = true := by
+  cases a <;> cases b <;> simp
+
+-- Goal: decide proposition equivalence  
+theorem decide_iff (p : Prop) [Decidable p] : decide p = true ↔ p := by
+  simp [decide_eq_true_iff]
+```
+
+### Pattern: Opposite Signs
+```lean4
+-- Goal: (a < 0 ∧ b > 0) ∨ (a > 0 ∧ b < 0) ↔ Bool expression
+theorem opposite_signs_pattern (a b : Int) : 
+  (a < 0 ∧ b > 0) ∨ (a > 0 ∧ b < 0) ↔ 
+  (decide (a < 0) && decide (b > 0) || decide (a > 0) && decide (b < 0)) = true := by
+  simp [decide_eq_true_iff]
+  constructor
+  · intro h
+    cases h with
+    | inl h => simp [h.1, h.2]
+    | inr h => simp [h.1, h.2]
+  · intro h
+    simp at h
+    cases h with
+    | inl h => exact Or.inl h
+    | inr h => exact Or.inr h
+```
+
+## Pattern 2: If-Then-Else Proofs
+
+### Template: Conditional Minimum
+```lean4
+-- Goal: Properties of if-then-else minimum
+theorem min_properties (a b : Int) : 
+  let result := if a ≤ b then a else b
+  (result ≤ a ∧ result ≤ b) ∧ (result = a ∨ result = b) := by
+  simp [let_value]
+  split
+  · simp
+  · simp
+    omega
+```
+
+### Template: Three-way Minimum
+```lean4
+theorem min_three_properties (a b c : Int) :
+  let result := if a ≤ b then if a ≤ c then a else c else if b ≤ c then b else c
+  (result ≤ a ∧ result ≤ b ∧ result ≤ c) ∧ (result = a ∨ result = b ∨ result = c) := by
+  simp [let_value]
+  split <;> split <;> simp <;> omega
+```
+
+## Pattern 3: Array Membership Proofs
+
+### Template: Array Contains
+```lean4
+-- Goal: Array.contains equivalence
+theorem array_contains_iff [BEq α] [LawfulBEq α] (arr : Array α) (x : α) :
+  arr.contains x = true ↔ x ∈ arr := by
+  simp [Array.contains_def, Array.mem_def]
+
+-- Goal: Array.any equivalence
+theorem array_any_iff (arr : Array α) (p : α → Bool) :
+  arr.any p = true ↔ ∃ x ∈ arr, p x = true := by
+  simp [Array.any_eq_true]
+```
+
+### Template: Common Elements
+```lean4
+-- Goal: Two arrays have common element
+theorem has_common_element_spec (a b : Array Int) :
+  (∃ x, x ∈ a ∧ x ∈ b) ↔ a.any (fun x => b.contains x) = true := by
+  simp [Array.any_eq_true, Array.contains_def]
+  constructor
+  · intro ⟨x, hx_a, hx_b⟩
+    exact ⟨x, hx_a, by simp [Array.mem_def] at hx_b; exact hx_b⟩
+  · intro ⟨x, hx_a, hx_cond⟩
+    exact ⟨x, hx_a, by simp [Array.mem_def]; exact hx_cond⟩
+```
+
+## Pattern 4: Arithmetic and Modular Proofs
+
+### Template: Divisibility
+```lean4
+-- Goal: n % 11 = 0 equivalence
+theorem divisible_by_11_iff (n : Int) : 
+  n % 11 = 0 ↔ decide (n % 11 = 0) = true := by
+  simp [decide_eq_true_iff]
+
+-- Goal: Last digit properties
+theorem last_digit_spec (n : Int) : 
+  (0 ≤ n % 10 ∧ n % 10 < 10) ∧ n % 10 = n % 10 := by
+  constructor
+  · exact ⟨Int.emod_nonneg n (by norm_num), Int.emod_lt_of_pos n (by norm_num)⟩
+  · rfl
+```
+
+## Pattern 5: Comparison and Ordering
+
+### Template: Greater Than All
+```lean4
+-- Goal: n > all elements in array
+theorem greater_than_all_spec (n : Int) (arr : Array Int) :
+  (∀ i < arr.size, n > arr[i]!) ↔ (arr.all fun x => decide (n > x)) = true := by
+  simp [Array.all_eq_true, decide_eq_true_iff]
+  constructor
+  · intro h x hx
+    exact h (Array.getElem_pos arr hx)
+  · intro h i hi
+    exact h arr[i]! (Array.getElem_mem arr i hi)
+```
+
+## Pattern 6: Complex Boolean Logic
+
+### Template: Multiple Conditions
+```lean4
+-- Goal: Complex boolean combinations
+theorem complex_boolean_spec (a b c : Int) :
+  ((a ≤ b ∧ a ≤ c) ∨ (b ≤ a ∧ b ≤ c) ∨ (c ≤ a ∧ c ≤ b)) ↔
+  (decide (a ≤ b) && decide (a ≤ c) || 
+   decide (b ≤ a) && decide (b ≤ c) || 
+   decide (c ≤ a) && decide (c ≤ b)) = true := by
+  simp [decide_eq_true_iff]
+  tauto
+```
+
+## Common Tactic Sequences
+
+### For Boolean ↔ Proofs
+```lean4
+-- Standard pattern
+cases a <;> cases b <;> simp
+
+-- With three variables
+cases a <;> cases b <;> cases c <;> simp
+
+-- With decidable propositions
+simp [decide_eq_true_iff]
+```
+
+### For If-Then-Else Proofs
+```lean4
+-- Single condition
+split <;> simp
+
+-- Multiple nested conditions
+split <;> split <;> simp <;> omega
+
+-- With let bindings
+simp [let_value]
+split <;> simp
+```
+
+### For Array Proofs
+```lean4
+-- Membership equivalence
+simp [Array.mem_def, Array.contains_def]
+
+-- Existential properties
+simp [Array.any_eq_true]
+
+-- Universal properties  
+simp [Array.all_eq_true]
+```
+
+### For Arithmetic Proofs
+```lean4
+-- Linear arithmetic
+omega
+
+-- Modular arithmetic
+simp [Int.emod_nonneg, Int.emod_lt_of_pos]
+
+-- Combined with other tactics
+simp <;> omega
+```
+
+## Error Recovery Patterns
+
+### When "simp made no progress"
+```lean4
+-- Replace with case analysis
+cases a <;> cases b <;> simp
+
+-- Or use specific lemmas
+simp [specific_lemma]
+
+-- Or use omega for arithmetic
+omega
+```
+
+### When "unfold failed"
+```lean4
+-- Replace unfold with simp
+simp [function_name]
+
+-- Or use direct proof
+rfl
+```
+
+### When comma errors occur
+```lean4
+-- Wrong: tac1, tac2
+-- Right: tac1 <;> tac2
+
+-- Wrong: cases a, cases b, simp  
+-- Right: cases a <;> cases b <;> simp
+```
+
+### When Lean 3 syntax used
+```lean4
+-- Wrong: iff.intro
+-- Right: constructor
+
+-- Wrong: split (without target)
+-- Right: cases h or split at h
+```
+
+## Success Patterns by Problem Type
+
+### Boolean Logic Problems
+1. Identify the goal structure (↔ with Bool/Prop conversion)
+2. Use `simp [decide_eq_true_iff]` for decidable propositions
+3. Use `cases` analysis for exhaustive enumeration
+4. Compose with `<;>` for efficiency
+
+### Array Problems  
+1. Use correct API: `Array.any`, `Array.contains` (no ?)
+2. Apply membership lemmas: `Array.mem_def`, `Array.contains_def`
+3. Use `simp` with array-specific lemmas
+4. Handle existential/universal quantification properly
+
+### Conditional Problems
+1. Use `split` tactic for if-then-else
+2. Handle nested conditions with multiple splits
+3. Use `omega` for arithmetic conditions
+4. Simplify after splitting
+
+### Arithmetic Problems
+1. Use `omega` for linear arithmetic
+2. Use `simp` for basic simplifications
+3. Handle modular arithmetic with specific lemmas
+4. Combine tactics when needed
+
+<EOC>

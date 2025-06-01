@@ -8,3 +8,7 @@ __pycache__/
 venv/
 .tasks_copy/
 .env
+.venv
+.claude
+.devcontainer
+CLAUDE.md

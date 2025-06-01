@@ -1,0 +1,256 @@
+# Lean 4 Complete Proof Tactics Guide
+
+## Core Tactics - Syntax and Examples
+
+### rfl (Reflexivity)
+Proves goals of the form `a = a` or reflexive relations like `P ↔ P`.
+
+```lean4
+example (n : Nat) : n = n := by rfl
+
+theorem refl_iff (p : Prop) : p ↔ p := by rfl
+
+-- Works with definitional equality
+example : 2 + 3 = 5 := by rfl
+```
+
+### exact
+Provides an exact proof term for the goal.
+
+```lean4
+example (h : 5 < 7) : 5 < 7 := by exact h
+
+example (a b : Nat) (h1 : a = b) (h2 : b = 10) : a = 10 := by
+  exact Eq.trans h1 h2
+```
+
+### constructor
+Proves goals with constructors (And, Or.inl, Or.inr, etc.).
+
+```lean4
+-- For And (∧)
+example (h1 : 5 < 7) (h2 : 3 = 3) : 5 < 7 ∧ 3 = 3 := by constructor; exact h1; exact h2
+
+-- For Or - use Or.inl or Or.inr directly
+example : 5 < 7 ∨ 1 > 10 := by exact Or.inl (by decide)
+
+-- For structures
+structure Point where
+  x : Nat
+  y : Nat
+
+example : Point := by constructor; exact 1; exact 2
+```
+
+### cases
+Performs case analysis on inductive types.
+
+```lean4
+-- Boolean case analysis
+example (b : Bool) : b = true ∨ b = false := by
+  cases b
+  · exact Or.inl rfl
+  · exact Or.inr rfl
+
+-- Or case analysis
+example (h : P ∨ Q) : Q ∨ P := by
+  cases h with
+  | inl hp => exact Or.inr hp
+  | inr hq => exact Or.inl hq
+
+-- Multiple cases with simp
+example (a b : Bool) : a && b = b && a := by
+  cases a <;> cases b <;> simp
+```
+
+### simp (Simplification)
+Applies simplification rules marked with @[simp].
+
+```lean4
+-- Basic arithmetic
+example (n : Nat) : n + 0 = n := by simp
+
+-- Boolean simplification
+example : true && false = false := by simp
+
+-- Array operations
+example (arr : Array Nat) : arr.size = 0 ↔ arr = #[] := by simp
+
+-- With specific lemmas
+example (n : Nat) : 2 * n = n + n := by simp [Nat.two_mul]
+```
+
+### omega (Linear Arithmetic)
+Solves linear arithmetic goals over integers and naturals.
+
+```lean4
+example (x y : Nat) : x ≤ x + y := by omega
+
+example (a b c : Int) (h1 : a < b) (h2 : b < c) : a < c := by omega
+
+example (n : Nat) (h : n > 0) : n ≥ 1 := by omega
+
+-- System of equations
+example (x y : Nat) (h1 : x + y = 10) (h2 : x = 3) : y = 7 := by omega
+```
+
+### decide
+Proves decidable propositions by computation.
+
+```lean4
+example : 10 < 5 ∨ 1 > 0 := by decide
+
+example : ¬ (True ∧ False) := by decide
+
+example : 10 * 20 = 200 := by decide
+
+-- Boolean to Prop conversion
+example (n : Nat) : decide (n % 2 = 0) = true ↔ n % 2 = 0 := by simp [decide_eq_true_iff]
+```
+
+## Advanced Tactics
+
+### split
+Splits if-then-else expressions and match statements.
+
+```lean4
+example (n : Nat) : (if n = 0 then 1 else n) > 0 := by
+  split
+  · simp
+  · omega
+```
+
+### by_cases
+Classical reasoning by cases.
+
+```lean4
+example (p : Prop) : p ∨ ¬p := by
+  by_cases h : p
+  · exact Or.inl h
+  · exact Or.inr h
+```
+
+### induction
+Proof by induction.
+
+```lean4
+example (n : Nat) : 2^n ≥ 1 := by
+  induction n with
+  | zero => simp
+  | succ n ih => 
+    calc 2^(n+1) = 2 * 2^n := by simp [pow_succ]
+    _ ≥ 2 * 1 := by omega
+    _ = 2 := by simp
+    _ ≥ 1 := by omega
+```
+
+## Boolean Logic Patterns
+
+### Bool to Prop Conversion
+```lean4
+-- Using decide
+def isPositive (n : Int) : Bool := decide (n > 0)
+
+theorem isPositive_correct (n : Int) : isPositive n = true ↔ n > 0 := by
+  simp [isPositive, decide_eq_true_iff]
+
+-- Direct Bool operations
+example (a b : Bool) : (a && b) = true ↔ a = true ∧ b = true := by
+  cases a <;> cases b <;> simp
+```
+
+### Boolean Equivalences
+```lean4
+theorem bool_and_comm (a b : Bool) : a && b = b && a := by
+  cases a <;> cases b <;> simp
+
+theorem bool_or_assoc (a b c : Bool) : (a || b) || c = a || (b || c) := by
+  cases a <;> cases b <;> cases c <;> simp
+```
+
+## Array Proof Patterns
+
+### Array Membership
+```lean4
+-- Array.contains using BEq
+example (arr : Array Nat) (x : Nat) : arr.contains x = true ↔ x ∈ arr := by
+  simp [Array.contains_def, Array.mem_def]
+
+-- Array.any for predicates
+example (arr : Array Nat) (p : Nat → Bool) : 
+  arr.any p = true ↔ ∃ x ∈ arr, p x = true := by
+  simp [Array.any_eq_true]
+```
+
+### Array Size and Indexing
+```lean4
+example (arr : Array α) (i : Nat) (h : i < arr.size) : 
+  arr[i] ∈ arr := by
+  simp [Array.getElem_mem]
+
+example (arr : Array α) : arr.size = 0 ↔ arr = #[] := by
+  simp [Array.size_eq_zero_iff]
+```
+
+## Common Proof Strategies
+
+### If-Then-Else Proofs
+```lean4
+example (a b c : Int) : (if a ≤ b then a else b) ≤ c → a ≤ c ∨ b ≤ c := by
+  intro h
+  split at h
+  · exact Or.inl h
+  · exact Or.inr h
+```
+
+### Decidable Equality Proofs
+```lean4
+example (n m : Nat) : (n = m) ∨ (n ≠ m) := by
+  by_cases h : n = m
+  · exact Or.inl h
+  · exact Or.inr h
+```
+
+### Contradiction Proofs
+```lean4
+example (h : False) : P := by
+  exact False.elim h
+
+example (h1 : P) (h2 : ¬P) : Q := by
+  exact False.elim (h2 h1)
+```
+
+## Common Error Patterns to Avoid
+
+### Lean 3 vs Lean 4 Syntax
+- ❌ `iff.intro` → ✅ `constructor` for `↔`
+- ❌ `split` without goal → ✅ `split` on specific expression
+- ❌ Comma-separated tactics → ✅ Use `<;>` or newlines
+
+### Correct Tactic Composition
+```lean4
+-- ✅ Correct
+example (a b : Bool) : a = b ∨ a ≠ b := by
+  cases a <;> cases b <;> simp
+
+-- ❌ Incorrect syntax
+-- example (a b : Bool) : a = b ∨ a ≠ b := by
+--   cases a, cases b, simp
+```
+
+### Boolean Decidability
+```lean4
+-- ✅ Correct
+example (n : Int) : n > 0 ∨ n ≤ 0 := by
+  by_cases h : n > 0
+  · exact Or.inl h
+  · exact Or.inr (le_of_not_gt h)
+
+-- Alternative with decide
+example (n : Int) : decide (n > 0) = true ∨ decide (n ≤ 0) = true := by
+  by_cases h : n > 0
+  · simp [h]
+  · simp [le_of_not_gt h]
+```
+
+<EOC>

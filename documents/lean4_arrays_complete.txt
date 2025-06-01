@@ -1,0 +1,277 @@
+# Lean 4 Arrays Complete Guide
+
+## Array vs List Comparison
+
+### Array Characteristics
+- Dynamic arrays with O(1) access
+- Efficient mutation when single reference
+- Contiguous memory layout for cache efficiency
+- Better for performance-critical operations
+
+### List Characteristics  
+- Linked list structure with O(n) access
+- Immutable by design
+- Better for recursive algorithms
+- Pattern matching friendly
+
+## Array Creation and Basic Operations
+
+### Array Literals
+```lean4
+def numbers : Array Nat := #[1, 2, 3, 4, 5]
+def empty : Array String := #[]
+def mixed : Array (Nat × String) := #[(1, "one"), (2, "two")]
+```
+
+### Array Access Patterns
+```lean4
+-- Safe access (returns Option)
+#eval numbers.get? 2        -- some 3
+#eval numbers.get? 10       -- none
+
+-- Unsafe access (can panic)
+#eval numbers[2]!           -- 3
+-- #eval numbers[10]!       -- panic!
+
+-- Proved access (requires bounds proof)
+example (h : 2 < numbers.size) : numbers[2] = 3 := by simp
+
+-- Size operations
+#eval numbers.size          -- 5
+#eval empty.size            -- 0
+```
+
+## Core Array Methods (2024)
+
+### Array.contains and Array.elem
+```lean4
+-- Array.contains: checks if element exists using BEq
+def hasThree : Bool := #[1, 2, 3, 4].contains 3  -- true
+def hasFive : Bool := #[1, 2, 3, 4].contains 5   -- false
+
+-- Array.elem: synonym with different parameter order
+def elemCheck : Bool := Array.elem 3 #[1, 2, 3, 4]  -- true
+
+-- Membership proofs
+example : 3 ∈ #[1, 2, 3, 4] := by simp
+example : ¬(5 ∈ #[1, 2, 3, 4]) := by simp
+```
+
+### Array.any and Array.all
+```lean4
+-- Array.any: returns true if predicate holds for any element
+def hasEven : Bool := #[1, 3, 4, 7].any (fun n => n % 2 = 0)  -- true
+def allPositive : Bool := #[1, 2, 3].any (fun n => n > 0)     -- true
+
+-- Array.all: returns true if predicate holds for all elements  
+def allEven : Bool := #[2, 4, 6].all (fun n => n % 2 = 0)     -- true
+def allSmall : Bool := #[1, 2, 100].all (fun n => n < 10)     -- false
+
+-- With decidable predicates
+def anyNegative (arr : Array Int) : Bool := 
+  arr.any (fun x => decide (x < 0))
+
+def allNonNegative (arr : Array Int) : Bool := 
+  arr.all (fun x => decide (x ≥ 0))
+```
+
+### Array.find and Array.findSome
+```lean4
+-- Array.find?: returns first element satisfying predicate
+def firstEven : Option Nat := #[1, 3, 4, 7, 8].find? (fun n => n % 2 = 0)  -- some 4
+def firstNegative : Option Int := #[1, 2, 3].find? (fun n => n < 0)         -- none
+
+-- Array.findIdx?: returns index of first match
+def evenIndex : Option Nat := #[1, 3, 4, 7].findIdx? (fun n => n % 2 = 0)  -- some 2
+
+-- Array.findSome: applies function until it returns Some
+def findDouble : Option Nat := #[1, 2, 3].findSome? (fun n => 
+  if n % 2 = 0 then some (n * 2) else none)  -- some 4
+```
+
+### Array Transformation Methods
+```lean4
+-- Map operations
+def doubled : Array Nat := #[1, 2, 3].map (· * 2)              -- #[2, 4, 6]
+def withIndex : Array (Nat × Nat) := #[10, 20, 30].mapIdx (fun i x => (i, x))  -- #[(0, 10), (1, 20), (2, 30)]
+
+-- Filter operations
+def evens : Array Nat := #[1, 2, 3, 4, 5].filter (fun n => n % 2 = 0)  -- #[2, 4]
+
+-- Fold operations
+def sum : Nat := #[1, 2, 3, 4].foldl (· + ·) 0                 -- 10
+def product : Nat := #[1, 2, 3, 4].foldr (· * ·) 1             -- 24
+```
+
+## Array Membership and Search Proofs
+
+### Membership Theorems
+```lean4
+-- Basic membership
+theorem mem_of_get (arr : Array α) (i : Nat) (h : i < arr.size) : 
+  arr[i] ∈ arr := by
+  simp [Array.getElem_mem]
+
+-- Contains equivalence  
+theorem contains_iff_mem [BEq α] [LawfulBEq α] (arr : Array α) (x : α) :
+  arr.contains x = true ↔ x ∈ arr := by
+  simp [Array.contains_def, Array.mem_def]
+
+-- Any predicate equivalence
+theorem any_eq_true_iff (arr : Array α) (p : α → Bool) :
+  arr.any p = true ↔ ∃ x ∈ arr, p x = true := by
+  simp [Array.any_eq_true]
+```
+
+### Common Array Patterns for Proofs
+```lean4
+-- Empty array
+theorem empty_size : (#[] : Array α).size = 0 := by simp
+
+-- Array append
+theorem mem_append {arr1 arr2 : Array α} {x : α} :
+  x ∈ arr1 ++ arr2 ↔ x ∈ arr1 ∨ x ∈ arr2 := by
+  simp [Array.mem_append]
+
+-- Array push
+theorem mem_push {arr : Array α} {x y : α} :
+  x ∈ arr.push y ↔ x ∈ arr ∨ x = y := by
+  simp [Array.mem_push]
+```
+
+## Array Construction Patterns
+
+### From Lists
+```lean4
+def fromList : Array Nat := [1, 2, 3, 4].toArray
+def backToList : List Nat := #[1, 2, 3, 4].toList
+
+-- Prove equivalence
+theorem toArray_toList_id (l : List α) : l.toArray.toList = l := by simp
+theorem toList_toArray_id (arr : Array α) : arr.toList.toArray = arr := by simp
+```
+
+### Range and Repetition
+```lean4
+-- Array.range: creates [0, 1, ..., n-1]
+def range10 : Array Nat := Array.range 10
+
+-- Array.mkArray: creates array of repeated elements
+def zeros : Array Nat := Array.mkArray 5 0  -- #[0, 0, 0, 0, 0]
+
+-- Prove properties
+theorem range_size (n : Nat) : (Array.range n).size = n := by simp
+theorem mkArray_size (n : Nat) (x : α) : (Array.mkArray n x).size = n := by simp
+```
+
+## Boolean Array Operations
+
+### Boolean Logic with Arrays
+```lean4
+-- Check if array has common elements
+def hasCommonElement (a b : Array Int) : Bool :=
+  a.any (fun x => b.contains x)
+
+-- Alternative implementation with find
+def hasCommonElementAlt (a b : Array Int) : Bool :=
+  a.find? (fun x => b.contains x) |>.isSome
+
+-- Proof of equivalence
+theorem hasCommon_equiv (a b : Array Int) [BEq Int] [LawfulBEq Int] :
+  hasCommonElement a b = hasCommonElementAlt a b := by
+  simp [hasCommonElement, hasCommonElementAlt, Array.any_eq_true]
+  simp [Option.isSome_iff_exists]
+  constructor
+  · intro ⟨x, hx_in_a, hx_in_b⟩
+    exact ⟨x, hx_in_a, by simp [Array.contains_def] at hx_in_b; exact hx_in_b⟩
+  · intro ⟨x, hx_in_a, hx_cond⟩
+    exact ⟨x, hx_in_a, by simp [Array.contains_def]; exact hx_cond⟩
+```
+
+### Array Comparison Operations
+```lean4
+-- Check if all elements satisfy relation
+def allLess (a b : Array Nat) : Bool :=
+  a.all (fun x => b.any (fun y => x < y))
+
+-- Check array equality with custom predicate
+def arrayEqBy (a b : Array α) (eq_fn : α → α → Bool) : Bool :=
+  a.size = b.size && 
+  Array.range a.size |>.all (fun i => 
+    eq_fn (a[i]!) (b[i]!))
+```
+
+## Advanced Array Patterns
+
+### Array Slicing and Subarray Operations
+```lean4
+-- Extract slice using List conversion
+def arraySlice (arr : Array α) (start stop : Nat) : Array α :=
+  arr.toList.drop start |>.take (stop - start) |>.toArray
+
+-- Prove slice properties
+theorem slice_size (arr : Array α) (start stop : Nat) :
+  (arraySlice arr start stop).size ≤ stop - start := by
+  simp [arraySlice]
+  exact List.length_take_le _ _
+```
+
+### Array Sorting and Searching
+```lean4
+-- Binary search (assuming sorted array)
+def binarySearch [Ord α] (arr : Array α) (target : α) : Option Nat :=
+  go 0 arr.size
+where
+  go (left right : Nat) : Option Nat :=
+    if h : left < right then
+      let mid := (left + right) / 2
+      if mid < arr.size then
+        match compare target arr[mid]! with
+        | .lt => go left mid
+        | .eq => some mid  
+        | .gt => go (mid + 1) right
+      else none
+    else none
+```
+
+## Error Patterns and Solutions
+
+### Common Mistakes
+```lean4
+-- ❌ Wrong: Array.any? doesn't exist
+-- def wrongAny (arr : Array Int) : Bool := arr.any? (· > 0)
+
+-- ✅ Correct: Use Array.any
+def correctAny (arr : Array Int) : Bool := arr.any (fun x => x > 0)
+
+-- ❌ Wrong: Array.contains? doesn't exist  
+-- def wrongContains (arr : Array Int) (x : Int) : Bool := arr.contains? x
+
+-- ✅ Correct: Use Array.contains
+def correctContains (arr : Array Int) (x : Int) : Bool := arr.contains x
+```
+
+### Safe Array Operations
+```lean4
+-- Safe element access with default
+def getOrDefault (arr : Array α) (i : Nat) (default : α) : α :=
+  arr.get? i |>.getD default
+
+-- Safe array operations with bounds checking
+def safeAppend (arr1 arr2 : Array α) : Array α :=
+  if arr1.size + arr2.size ≤ 1000000 then  -- arbitrary size limit
+    arr1 ++ arr2
+  else
+    arr1  -- or throw error
+
+-- Prove safety properties
+theorem safe_get_mem (arr : Array α) (i : Nat) (default : α) :
+  let result := getOrDefault arr i default
+  i < arr.size → result ∈ arr := by
+  intro h
+  simp [getOrDefault]
+  simp [Array.get?_eq_getElem?, h]
+  exact Array.getElem_mem arr i h
+```
+
+<EOC>

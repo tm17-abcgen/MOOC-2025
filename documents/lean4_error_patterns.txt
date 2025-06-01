@@ -1,0 +1,340 @@
+# Lean 4 Error Patterns and Solutions Database
+
+## Type Mismatch Patterns
+
+### Error: "type mismatch: Bool vs Prop"
+
+**Pattern**: Confusion between Bool and Prop in equivalence proofs
+```lean4
+-- ❌ Type error example
+theorem test (a b : Int) : (a < 0 ∧ b > 0) ∨ (a > 0 ∧ b < 0) ↔ (decide (a > 0) && decide (b < 0) || decide (a < 0) && decide (b > 0)) = true := by
+  exact Or.comm  -- WRONG: Or.comm doesn't handle Prop ↔ Bool
+
+-- ✅ Correct approach
+theorem test (a b : Int) : (a < 0 ∧ b > 0) ∨ (a > 0 ∧ b < 0) ↔ (decide (a > 0) && decide (b < 0) || decide (a < 0) && decide (b > 0)) = true := by
+  simp [decide_eq_true_iff]
+  tauto
+```
+
+**Root Cause**: Mixing logical propositions (Prop) with boolean expressions (Bool)
+**Fix**: Use `simp [decide_eq_true_iff]` to convert between Prop and Bool, then `tauto` for propositional logic
+**Common Tactics**: `simp [decide_eq_true_iff]`, `tauto`, `constructor`, `omega`
+
+## Template Confusion Patterns
+
+### Error: "unexpected token 'def'; expected term"
+
+**Pattern**: Including function definitions in code section
+```lean4
+-- ❌ Wrong - putting function definition in {{code}}
+def minOfThree (a : Int) (b : Int) (c : Int) : Int :=
+  def minOfThree (a : Int) (b : Int) (c : Int) : Int :=
+  if a ≤ b then a else b
+
+-- ✅ Correct - only expression in {{code}}
+def minOfThree (a : Int) (b : Int) (c : Int) : Int :=
+  if decide (a ≤ b && a ≤ c) then a else if decide (b ≤ c) then b else c
+```
+
+**Root Cause**: Template confusion between {{code}} and {{proof}} sections
+**Fix**: {{code}} = ONLY function body expression, {{proof}} = ONLY proof tactics
+
+### Error: "has already been declared"
+
+**Pattern**: Duplicate function definitions
+**Root Cause**: Generated code includes function signature instead of just body
+**Fix**: Strip function definitions, keep only the expression
+
+### Error: "tauto failed to solve some goals"
+
+**Pattern**: Complex proofs requiring case analysis
+```lean4
+-- ❌ Simple tactic doesn't work
+theorem complex_min_proof : ... := by
+  simp [decide_eq_true_iff]
+  tauto  -- FAILS on complex nested if-then-else
+
+-- ✅ Use case analysis
+theorem complex_min_proof : ... := by
+  split <;> simp <;> omega
+```
+
+**Root Cause**: Complex if-then-else expressions need structural reasoning
+**Fix**: Use `split <;> simp <;> omega` for complex conditional proofs
+
+## Syntax Error Patterns
+
+### Error: "unexpected token ','"
+
+**Pattern**: Using comma separators between tactics
+```lean4
+-- ❌ Wrong (Lean 3 style)
+cases a, cases b, simp
+
+-- ✅ Correct (Lean 4 style)  
+cases a <;> cases b <;> simp
+```
+
+**Root Cause**: Lean 4 requires explicit tactic composition
+**Fix**: Replace commas with `<;>` or newlines
+**Example Fix**:
+```lean4
+-- Before: simp, omega, rfl
+-- After: simp <;> omega <;> rfl
+```
+
+### Error: "unknown identifier 'iff.intro'"
+
+**Pattern**: Using Lean 3 syntax for biconditional introduction
+```lean4
+-- ❌ Wrong (Lean 3)
+theorem example_iff : P ↔ Q := by
+  iff.intro
+
+-- ✅ Correct (Lean 4)
+theorem example_iff : P ↔ Q := by
+  constructor
+```
+
+**Root Cause**: Lean 4 uses different identifier names
+**Fix**: Use `constructor` instead of `iff.intro`
+
+### Error: "unexpected token ';', expected command"
+
+**Pattern**: Malformed tactic sequences
+```lean4
+-- ❌ Wrong
+by simp; cases h; exact rfl
+
+-- ✅ Correct  
+by simp <;> cases h <;> exact rfl
+```
+
+**Root Cause**: Incorrect tactic separator usage
+**Fix**: Use `<;>` for composition, `;` for sequencing
+
+## API Error Patterns
+
+### Error: "Array.any? not found"
+
+**Pattern**: Using non-existent Array methods
+```lean4
+-- ❌ Wrong
+def hasEven (arr : Array Int) : Bool := 
+  arr.any? (fun x => x % 2 = 0)
+
+-- ✅ Correct
+def hasEven (arr : Array Int) : Bool := 
+  arr.any (fun x => x % 2 = 0)
+```
+
+**Root Cause**: Method name confusion with Option types
+**Fix**: Use `Array.any` not `Array.any?`
+
+### Error: "Array.contains? not found"
+
+**Pattern**: Incorrect Array membership check
+```lean4
+-- ❌ Wrong  
+def hasElement (arr : Array Int) (x : Int) : Bool :=
+  arr.contains? x
+
+-- ✅ Correct
+def hasElement (arr : Array Int) (x : Int) : Bool :=
+  arr.contains x
+```
+
+**Root Cause**: Method name confusion
+**Fix**: Use `Array.contains` not `Array.contains?`
+
+## Tactic Error Patterns
+
+### Error: "unfold failed to unfold 'functionName'"
+
+**Pattern**: Overuse of unfold tactic
+```lean4
+-- ❌ Often fails
+theorem example_spec : functionName x = result := by
+  unfold functionName
+  simp
+
+-- ✅ Better approach
+theorem example_spec : functionName x = result := by
+  simp [functionName]
+```
+
+**Root Cause**: `unfold` is often unnecessary in Lean 4
+**Fix**: Use `simp [function_name]` or direct proof
+
+### Error: "simp made no progress"
+
+**Pattern**: Ineffective simplification
+```lean4
+-- ❌ Ineffective
+theorem bool_example (a b : Bool) : a && b = b && a := by
+  simp
+
+-- ✅ Effective
+theorem bool_example (a b : Bool) : a && b = b && a := by
+  cases a <;> cases b <;> simp
+```
+
+**Root Cause**: Goal needs case analysis before simplification
+**Fix**: Use case analysis or more specific lemmas
+
+### Error: "split failed"
+
+**Pattern**: Using split without proper context
+```lean4
+-- ❌ Wrong context
+theorem example (h : P) : if P then Q else R := by
+  split
+  
+-- ✅ Correct usage
+theorem example (h : P) : if P then Q else R := by
+  split
+  · -- Case: P is true
+    sorry
+  · -- Case: P is false  
+    sorry
+```
+
+**Root Cause**: Split needs proper goal structure
+**Fix**: Ensure if-then-else or match expression in goal
+
+## Type Error Patterns
+
+### Error: "type mismatch: Bool vs Prop"
+
+**Pattern**: Confusion between Bool and Prop
+```lean4
+-- ❌ Type error
+example (n : Int) : n > 0 && n < 10 := by sorry
+
+-- ✅ Correct Bool version
+example (n : Int) : decide (n > 0) && decide (n < 10) = true := by
+  simp [decide_eq_true_iff]
+
+-- ✅ Correct Prop version  
+example (n : Int) : n > 0 ∧ n < 10 := by
+  constructor <;> omega
+```
+
+**Root Cause**: Mixing Bool and Prop contexts
+**Fix**: Use `decide` for Prop→Bool conversion or change to Prop
+
+### Error: "failed to synthesize instance Decidable"
+
+**Pattern**: Undecidable propositions in Bool context
+```lean4
+-- ❌ Not decidable
+#eval decide (∃ x : Real, x * x = 2)
+
+-- ✅ Decidable version
+#eval decide (∃ x : Nat, x < 10 ∧ x * x = 25)
+```
+
+**Root Cause**: Not all propositions are decidable
+**Fix**: Use decidable propositions or work in Prop
+
+## Goal-Specific Error Patterns
+
+### Boolean Equivalence Goals (↔)
+
+**Common Error**: Wrong tactic for biconditional
+```lean4
+-- ❌ Wrong
+theorem bool_iff (a b : Bool) : (a && b) = true ↔ a = true ∧ b = true := by
+  split
+
+-- ✅ Correct
+theorem bool_iff (a b : Bool) : (a && b) = true ↔ a = true ∧ b = true := by
+  cases a <;> cases b <;> simp
+```
+
+**Fix Pattern**: Use case analysis for Bool variables
+
+### Array Membership Goals
+
+**Common Error**: Incorrect membership proof
+```lean4
+-- ❌ Wrong approach
+theorem mem_example (arr : Array Int) (x : Int) : 
+  x ∈ arr ↔ arr.contains x = true := by
+  unfold Array.contains
+  
+-- ✅ Correct approach  
+theorem mem_example (arr : Array Int) (x : Int) : 
+  x ∈ arr ↔ arr.contains x = true := by
+  simp [Array.contains_def, Array.mem_def]
+```
+
+**Fix Pattern**: Use simp with appropriate definitional lemmas
+
+### If-Then-Else Goals
+
+**Common Error**: Not handling all cases
+```lean4
+-- ❌ Incomplete
+theorem ite_example (a b : Int) : 
+  (if a ≤ b then a else b) ≤ a := by
+  simp
+
+-- ✅ Complete
+theorem ite_example (a b : Int) : 
+  (if a ≤ b then a else b) ≤ a := by
+  split
+  · simp
+  · omega
+```
+
+**Fix Pattern**: Use split tactic and handle both branches
+
+## Quick Fix Reference
+
+### By Error Message
+| Error Message | Quick Fix |
+|---------------|-----------|
+| "unexpected token ','" | Replace `,` with `<;>` |
+| "unknown identifier 'iff.intro'" | Use `constructor` |
+| "unfold failed" | Use `simp [function_name]` |
+| "simp made no progress" | Add case analysis before simp |
+| "Array.any? not found" | Use `Array.any` |
+| "Array.contains? not found" | Use `Array.contains` |
+| "split failed" | Ensure if-then-else in goal |
+| "type mismatch" | Check Bool vs Prop usage |
+
+### By Problem Type
+| Problem Type | Recommended Tactics |
+|--------------|-------------------|
+| Boolean ↔ | `cases a <;> cases b <;> simp` |
+| Array membership | `simp [Array.mem_def]` |
+| If-then-else | `split <;> simp` |
+| Arithmetic | `omega` |
+| Decidable Prop | `simp [decide_eq_true_iff]` |
+
+## Error Recovery Strategies
+
+### Strategy 1: Syntax Validation
+1. Check for commas → replace with `<;>`
+2. Check for Lean 3 identifiers → update to Lean 4
+3. Check tactic composition → ensure proper separators
+
+### Strategy 2: API Validation  
+1. Check Array methods → remove `?` suffixes
+2. Check decidability → add `decide` wrappers
+3. Check type consistency → Bool vs Prop
+
+### Strategy 3: Tactic Selection
+1. For Boolean goals → use case analysis
+2. For arithmetic → use omega
+3. For arrays → use simp with lemmas
+4. For conditionals → use split
+
+### Strategy 4: Progressive Enhancement
+1. Start with simple tactics
+2. Add case analysis if needed
+3. Use omega for arithmetic
+4. Apply specific lemmas last
+
+<EOC>

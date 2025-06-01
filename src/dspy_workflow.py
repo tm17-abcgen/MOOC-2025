@@ -289,12 +289,12 @@ class DSPyOptimizer:
                         tests = json.load(f)
                         # Extract patterns from tests if possible
                 
-                # Create DSPy example
+                # Create DSPy example with proper input keys
                 example = dspy.Example(
                     problem_description=description,
                     lean_template=template,
                     task_id=task_dir
-                )
+                ).with_inputs("problem_description", "lean_template")
                 
                 # If we have ground truth (from successful runs), add it
                 if expected_impl:
@@ -333,9 +333,9 @@ class DSPyOptimizer:
         optimizer = MIPROv2(
             metric=metric_function,
             auto="medium",  # medium optimization depth
-            num_iterations=num_iterations,
-            instruction_tokens=500,
-            example_tokens=2000
+            max_bootstrapped_demos=8,
+            max_labeled_demos=0,
+            verbose=True
         )
         
         # Create a simplified module for optimization
@@ -353,7 +353,11 @@ class DSPyOptimizer:
         
         # Optimize
         simplified = SimplifiedWorkflow(self.workflow)
-        optimized = optimizer.compile(simplified, trainset=training_examples)
+        optimized = optimizer.compile(
+            simplified, 
+            trainset=training_examples,
+            requires_permission_to_run=False
+        )
         
         print("[OPTIMIZER] Optimization completed!")
         return optimized.workflow

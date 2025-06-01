@@ -1,12 +1,12 @@
 {
-  "num_chunks": 57,
+  "num_chunks": 146,
   "embedding_dim": 384,
   "model_used": "all-MiniLM-L6-v2",
   "chunk_preview": [
-    "Document: Example2\n\nOne of the most common methods in aMachine learning is a branch of artificial in...",
-    "Document: Example2\n\nDeep learning, a subset of machine learning, utilizes neural networks with multi...",
-    "Document: Example2\n\nControl systems are integral to engineering, ensuring that machines and processe...",
-    "Document: Example2\n\nAutonomous vehicles rely heavily on machine learning and deep learning to interp...",
-    "Document: Example2\n\nThe attention mechanism is a crucial innovation in deep learning, especially in ..."
+    "Document: Lean4 Error Patterns\n\n# Lean 4 Error Patterns and Solutions Database\n\n## Type Mismatch Pat...",
+    "Document: Lean4 Error Patterns\n\n-- \u2705 Correct approach\ntheorem test (a b : Int) : (a < 0 \u2227 b > 0) \u2228 (...",
+    "Document: Lean4 Error Patterns\n\n## Template Confusion Patterns\n\n### Error: \"unexpected token 'def'; ...",
+    "Document: Lean4 Error Patterns\n\n-- \u2705 Correct - only expression in {{code}}\ndef minOfThree (a : Int) ...",
+    "Document: Lean4 Error Patterns\n\n**Pattern**: Duplicate function definitions\n**Root Cause**: Generate..."
   ]
 }
